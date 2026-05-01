@@ -51,11 +51,23 @@ export function ControlsPanel({
           <Pencil size={18} aria-hidden="true" />
           Edit
         </button>
-        <button type="button" className="tool-button" onClick={onNext} disabled={!canGenerate}>
+        <button
+          type="button"
+          className="tool-button"
+          onClick={onNext}
+          disabled={!canGenerate}
+          aria-keyshortcuts="ArrowRight Enter"
+        >
           <StepForward size={18} aria-hidden="true" />
           Next
         </button>
-        <button type="button" className="tool-button" onClick={onDelete} disabled={!canDelete}>
+        <button
+          type="button"
+          className="tool-button"
+          onClick={onDelete}
+          disabled={!canDelete}
+          aria-keyshortcuts="ArrowLeft Backspace"
+        >
           <Trash2 size={18} aria-hidden="true" />
           Delete
         </button>
@@ -71,6 +83,7 @@ export function ControlsPanel({
         onClick={onContinue}
         disabled={!isContinuing && !canGenerate}
         aria-busy={isContinuing}
+        aria-keyshortcuts={isContinuing ? "Space Escape" : "Space"}
       >
         {isContinuing ? <Pause size={18} aria-hidden="true" /> : <ChevronsRight size={18} aria-hidden="true" />}
         {isContinuing ? "Cancel" : "Continue"}

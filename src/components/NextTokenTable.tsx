@@ -1,23 +1,25 @@
 import type { TokenCandidate } from "../inference/types";
-import { probabilityToPercent } from "../utils/probabilityColor";
+import { probabilityColor, probabilityToPercent } from "../utils/probabilityColor";
 
 interface NextTokenTableProps {
   candidates: TokenCandidate[];
   selectedTokenId: number | null;
   showTokenIds: boolean;
+  showProbabilities: boolean;
   disabled: boolean;
   onAppend: (candidate: TokenCandidate) => void;
 }
 
 function labelForCandidate(candidate: TokenCandidate, showTokenIds: boolean): string {
   if (showTokenIds) return String(candidate.tokenId);
-  return candidate.text.replaceAll("\n", "\\n").replaceAll("\t", "\\t") || " ";
+  return candidate.text.replaceAll(" ", "_").replaceAll("\n", "\\n").replaceAll("\t", "\\t") || "_";
 }
 
 export function NextTokenTable({
   candidates,
   selectedTokenId,
   showTokenIds,
+  showProbabilities,
   disabled,
   onAppend,
 }: NextTokenTableProps) {
@@ -52,7 +54,14 @@ export function NextTokenTable({
               </span>
               <span className="candidate-probability" role="cell">
                 <span className="probability-track" aria-hidden="true">
-                  <span style={{ width }} />
+                  <span
+                    style={{
+                      width,
+                      backgroundColor: showProbabilities
+                        ? probabilityColor(candidate.probability)
+                        : "var(--cyan)",
+                    }}
+                  />
                 </span>
                 <span>{probabilityToPercent(candidate.probability)}</span>
               </span>

@@ -17,6 +17,11 @@ import { currentDeviceLoadDecision, getWebGpuStatus } from "./utils/device";
 const PROMPT_DEBOUNCE_MS = 220;
 const PAINT_DELAY_MS = 35;
 
+function isEditableShortcutTarget(target: EventTarget | null): boolean {
+  if (!(target instanceof HTMLElement)) return false;
+  return Boolean(target.closest("input, textarea, select, button, [contenteditable='true']"));
+}
+
 function waitForPaint(): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, PAINT_DELAY_MS);
@@ -328,6 +333,51 @@ export function App() {
     setStatePatch({ isContinuing: false, isInferring: false, selectedTokenId: null });
   }, [setStatePatch]);
 
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+
+      if (state.isContinuing && (event.key === " " || event.key === "Escape")) {
+        event.preventDefault();
+        cancelContinue();
+        return;
+      }
+
+      if (isEditableShortcutTarget(event.target)) return;
+
+      if (event.key === "ArrowRight" || event.key === "Enter") {
+        if (!derived.canGenerate) return;
+        event.preventDefault();
+        void appendSampled();
+        return;
+      }
+
+      if (event.key === "ArrowLeft" || event.key === "Backspace") {
+        if (!derived.canDelete) return;
+        event.preventDefault();
+        void deleteOne();
+        return;
+      }
+
+      if (event.key === " ") {
+        if (!derived.canGenerate) return;
+        event.preventDefault();
+        void startContinue();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [
+    appendSampled,
+    cancelContinue,
+    deleteOne,
+    derived.canDelete,
+    derived.canGenerate,
+    startContinue,
+    state.isContinuing,
+  ]);
+
   const handleEdit = useCallback(() => {
     if (state.tokenIds.length > state.baseTokenIds.length) {
       void deleteAll();
@@ -374,6 +424,7 @@ export function App() {
             candidates={state.nextTokens}
             selectedTokenId={state.selectedTokenId}
             showTokenIds={state.showTokenIds}
+            showProbabilities={state.showProbabilities}
             disabled={state.isContinuing || !derived.canGenerate}
             onAppend={appendCandidate}
           />
