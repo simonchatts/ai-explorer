@@ -1,6 +1,6 @@
-# Web Token Explorer
+# AI Explorer
 
-Web Token Explorer is a browser-based next-token workbench for exploring how a local language model continues text. It runs inference fully in the browser with WebGPU.
+AI Explorer is a browser-based next-token workbench for exploring how a local language model continues text. It runs inference fully in the browser with WebGPU.
 
 The app uses the browser-ready ONNX version of `Qwen/Qwen2.5-0.5B` (`onnx-community/Qwen2.5-0.5B`).
 

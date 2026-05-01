@@ -1,4 +1,4 @@
-# Web Token Explorer Design Spec
+# AI Explorer Design Spec
 
 This directory is intended to become the root of a fresh TypeScript/React repo that reimplements the existing Python `main.py --gui` experience in-browser.
 
