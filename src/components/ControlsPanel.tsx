@@ -1,9 +1,7 @@
 import {
   ChevronsRight,
-  Hash,
   Pause,
   Pencil,
-  Play,
   RotateCcw,
   StepForward,
   Trash2,
@@ -92,17 +90,11 @@ export function ControlsPanel({
       <div className="toggle-stack">
         <label className="toggle-row">
           <input type="checkbox" checked={showTokenIds} onChange={onToggleTokenIds} />
-          <span>
-            <Hash size={17} aria-hidden="true" />
-            Show token numbers
-          </span>
+          <span>Show token numbers</span>
         </label>
         <label className="toggle-row">
           <input type="checkbox" checked={showProbabilities} onChange={onToggleProbabilities} />
-          <span>
-            <Play size={17} aria-hidden="true" />
-            Show probabilities
-          </span>
+          <span>Show probabilities</span>
         </label>
       </div>
     </section>

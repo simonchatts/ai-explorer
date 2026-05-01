@@ -6,7 +6,6 @@ import { ModelLoadGate } from "./components/ModelLoadGate";
 import { NextTokenTable } from "./components/NextTokenTable";
 import { ProbabilityLegend } from "./components/ProbabilityLegend";
 import { PromptEditor } from "./components/PromptEditor";
-import { StatusBar } from "./components/StatusBar";
 import { DEFAULT_TOP_N, MODEL_ID } from "./inference/types";
 import type { InferenceBackend, TokenCandidate } from "./inference/types";
 import { sampleVisibleToken } from "./inference/sampling";
@@ -394,7 +393,6 @@ export function App() {
     <main className="app-shell" aria-busy={state.isInferring || state.isContinuing}>
       <header className="app-header">
         <div>
-          <p className="eyebrow">Browser local inference</p>
           <h1>Token Explorer</h1>
         </div>
         <div className="model-pill">
@@ -453,21 +451,6 @@ export function App() {
             onToggleProbabilities={toggleProbabilities}
           />
           <ProbabilityLegend visible={state.showProbabilities} />
-          <StatusBar
-            modelId={MODEL_ID}
-            webGpuStatus={webGpuStatus}
-            tokenCount={state.tokenIds.length}
-            completionTokenCount={derived.completionTokenCount}
-            activity={
-              state.isContinuing
-                ? "Continuing"
-                : state.isInferring
-                  ? "Working"
-                  : state.loadStatus === "ready"
-                    ? "Ready"
-                    : state.loadStatus
-            }
-          />
         </aside>
       </section>
 
