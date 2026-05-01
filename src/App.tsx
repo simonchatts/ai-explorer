@@ -12,6 +12,7 @@ import { sampleVisibleToken } from "./inference/sampling";
 import { WorkerInferenceBackend } from "./inference/workerClient";
 import { getDerivedExplorerState, useExplorerStore } from "./state/explorerStore";
 import { currentDeviceLoadDecision, getWebGpuStatus } from "./utils/device";
+import aiExplorerTitleUrl from "./assets/ai-explorer.svg";
 
 const PROMPT_DEBOUNCE_MS = 220;
 const PAINT_DELAY_MS = 35;
@@ -393,7 +394,9 @@ export function App() {
     <main className="app-shell" aria-busy={state.isInferring || state.isContinuing}>
       <header className="app-header">
         <div>
-          <h1>Token Explorer</h1>
+          <h1 className="title-logo-heading">
+            <img className="title-logo" src={aiExplorerTitleUrl} alt="AI Explorer" />
+          </h1>
         </div>
         <div className="model-pill">
           <Sparkles aria-hidden="true" size={18} />

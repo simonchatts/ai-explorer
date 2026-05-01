@@ -34,6 +34,16 @@ h1 {
   letter-spacing: 0;
 }
 
+.title-logo-heading {
+  line-height: 0;
+}
+
+.title-logo {
+  display: block;
+  width: min(328px, 64vw);
+  height: auto;
+}
+
 h2 {
   margin-bottom: 0;
   font-size: 0.92rem;
