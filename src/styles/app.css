@@ -50,19 +50,22 @@ h2 {
   line-height: 1.25;
 }
 
-.model-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  min-height: 40px;
-  padding: 8px 12px;
+.github-link {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
   border: 1px solid var(--line);
-  border-radius: 999px;
+  border-radius: 7px;
   background: rgb(255 255 255 / 0.78);
-  color: var(--muted-ink);
-  font-family: "JetBrains Mono", ui-monospace, monospace;
-  font-size: 0.78rem;
-  white-space: nowrap;
+  color: var(--ink);
+  text-decoration: none;
+}
+
+.github-link:hover,
+.github-link:focus-visible {
+  background: #f5fbff;
+  color: #127f9b;
 }
 
 .workbench {
@@ -72,6 +75,33 @@ h2 {
   max-width: 1480px;
   margin: 0 auto;
   align-items: start;
+}
+
+.app-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  align-items: center;
+  max-width: 1480px;
+  margin: 14px auto 0;
+  color: var(--muted-ink);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.app-footer a {
+  color: inherit;
+  text-underline-offset: 2px;
+}
+
+.app-footer a:hover,
+.app-footer a:focus-visible {
+  color: #127f9b;
+}
+
+.app-footer code {
+  font-family: "JetBrains Mono", ui-monospace, monospace;
+  font-size: 0.66rem;
 }
 
 .main-column,
@@ -493,13 +523,7 @@ button.candidate-row:disabled {
   }
 
   .app-header {
-    display: grid;
-    align-items: start;
-  }
-
-  .model-pill {
-    width: 100%;
-    white-space: normal;
+    align-items: center;
   }
 
   .workbench {

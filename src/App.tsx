@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
-import { AlertTriangle, Sparkles } from "lucide-react";
+import { AlertTriangle } from "lucide-react";
 import { CompletionView } from "./components/CompletionView";
 import { ControlsPanel } from "./components/ControlsPanel";
 import { ModelLoadGate } from "./components/ModelLoadGate";
@@ -10,22 +10,38 @@ import { DEFAULT_TOP_N, MODEL_ID } from "./inference/types";
 import type { InferenceBackend, TokenCandidate } from "./inference/types";
 import { sampleVisibleToken } from "./inference/sampling";
 import { WorkerInferenceBackend } from "./inference/workerClient";
-import { getDerivedExplorerState, useExplorerStore } from "./state/explorerStore";
+import {
+  getDerivedExplorerState,
+  useExplorerStore,
+} from "./state/explorerStore";
 import { currentDeviceLoadDecision, getWebGpuStatus } from "./utils/device";
 import aiExplorerTitleUrl from "./assets/ai-explorer.svg";
 
 const PROMPT_DEBOUNCE_MS = 220;
 const PAINT_DELAY_MS = 35;
+const PROJECT_GITHUB_URL = "https://github.com/simonchatts/ai-explorer";
+const TOKEN_EXPLORER_URL = "https://github.com/willkurt/token-explorer";
+const MODEL_HF_URL = "https://huggingface.co/onnx-community/Qwen2.5-0.5B";
 
 function isEditableShortcutTarget(target: EventTarget | null): boolean {
   if (!(target instanceof HTMLElement)) return false;
-  return Boolean(target.closest("input, textarea, select, button, [contenteditable='true']"));
+  return Boolean(
+    target.closest("input, textarea, select, button, [contenteditable='true']"),
+  );
 }
 
 function waitForPaint(): Promise<void> {
   return new Promise((resolve) => {
     window.setTimeout(resolve, PAINT_DELAY_MS);
   });
+}
+
+function InvertocatLogo() {
+  return (
+    <svg aria-hidden="true" viewBox="0 0 16 16" width="20" height="20" fill="currentColor">
+      <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82A7.62 7.62 0 0 1 8 3.86c.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.01 8.01 0 0 0 16 8c0-4.42-3.58-8-8-8Z" />
+    </svg>
+  );
 }
 
 export function App() {
@@ -65,18 +81,24 @@ export function App() {
   }, [setStatePatch]);
 
   const refreshForTokens = useCallback(
-    async (tokenIds: number[], options: { baseTokenIds?: number[]; basePromptText?: string } = {}) => {
+    async (
+      tokenIds: number[],
+      options: { baseTokenIds?: number[]; basePromptText?: string } = {},
+    ) => {
       const backend = backendRef.current;
       if (!backend) throw new Error("Inference backend is not ready.");
 
-      const [decodedText, tokenTexts, nextTokens, tokenProbabilities] = await Promise.all([
-        backend.decode(tokenIds),
-        Promise.all(tokenIds.map((tokenId) => backend.decodeToken(tokenId))),
-        tokenIds.length > 0 ? backend.getTopNextTokens(tokenIds, DEFAULT_TOP_N) : Promise.resolve([]),
-        state.showProbabilities
-          ? backend.getPromptTokenProbabilities(tokenIds)
-          : Promise.resolve(state.tokenProbabilities),
-      ]);
+      const [decodedText, tokenTexts, nextTokens, tokenProbabilities] =
+        await Promise.all([
+          backend.decode(tokenIds),
+          Promise.all(tokenIds.map((tokenId) => backend.decodeToken(tokenId))),
+          tokenIds.length > 0
+            ? backend.getTopNextTokens(tokenIds, DEFAULT_TOP_N)
+            : Promise.resolve([]),
+          state.showProbabilities
+            ? backend.getPromptTokenProbabilities(tokenIds)
+            : Promise.resolve(state.tokenProbabilities),
+        ]);
 
       setStatePatch({
         decodedText,
@@ -87,7 +109,9 @@ export function App() {
         probabilitiesStale: !state.showProbabilities,
         selectedTokenId: null,
         ...(options.baseTokenIds ? { baseTokenIds: options.baseTokenIds } : {}),
-        ...(options.basePromptText != null ? { basePromptText: options.basePromptText } : {}),
+        ...(options.basePromptText != null
+          ? { basePromptText: options.basePromptText }
+          : {}),
       });
     },
     [setStatePatch, state.showProbabilities, state.tokenProbabilities],
@@ -143,7 +167,8 @@ export function App() {
     if (webGpuStatus === "unavailable") {
       setStatePatch({
         loadStatus: "error",
-        error: "WebGPU is not available in this browser. Try desktop Chrome or Edge with WebGPU enabled.",
+        error:
+          "WebGPU is not available in this browser. Try desktop Chrome or Edge with WebGPU enabled.",
       });
       return;
     }
@@ -197,7 +222,13 @@ export function App() {
     }, PROMPT_DEBOUNCE_MS);
 
     return () => window.clearTimeout(timer);
-  }, [derived.canEditPrompt, refreshForTokens, setStatePatch, state.basePromptText, state.loadStatus]);
+  }, [
+    derived.canEditPrompt,
+    refreshForTokens,
+    setStatePatch,
+    state.basePromptText,
+    state.loadStatus,
+  ]);
 
   const runTokenAction = useCallback(
     async (nextTokenIds: number[]) => {
@@ -208,7 +239,9 @@ export function App() {
       try {
         await refreshForTokens(nextTokenIds);
       } catch (error) {
-        setStatePatch({ error: error instanceof Error ? error.message : String(error) });
+        setStatePatch({
+          error: error instanceof Error ? error.message : String(error),
+        });
       } finally {
         if (actionRunId.current === runId) {
           setStatePatch({ isInferring: false });
@@ -224,7 +257,13 @@ export function App() {
       setStatePatch({ selectedTokenId: candidate.tokenId });
       await runTokenAction([...state.tokenIds, candidate.tokenId]);
     },
-    [runTokenAction, setStatePatch, state.isContinuing, state.isInferring, state.tokenIds],
+    [
+      runTokenAction,
+      setStatePatch,
+      state.isContinuing,
+      state.isInferring,
+      state.tokenIds,
+    ],
   );
 
   const appendSampled = useCallback(async () => {
@@ -239,9 +278,18 @@ export function App() {
   }, [derived.canDelete, runTokenAction, state.tokenIds]);
 
   const deleteAll = useCallback(async () => {
-    if (state.tokenIds.length === state.baseTokenIds.length || state.isInferring) return;
+    if (
+      state.tokenIds.length === state.baseTokenIds.length ||
+      state.isInferring
+    )
+      return;
     await runTokenAction([...state.baseTokenIds]);
-  }, [runTokenAction, state.baseTokenIds, state.isInferring, state.tokenIds.length]);
+  }, [
+    runTokenAction,
+    state.baseTokenIds,
+    state.isInferring,
+    state.tokenIds.length,
+  ]);
 
   const toggleProbabilities = useCallback(async () => {
     const nextValue = !state.showProbabilities;
@@ -252,10 +300,14 @@ export function App() {
     if (!backend) return;
     setStatePatch({ isInferring: true });
     try {
-      const tokenProbabilities = await backend.getPromptTokenProbabilities(state.tokenIds);
+      const tokenProbabilities = await backend.getPromptTokenProbabilities(
+        state.tokenIds,
+      );
       setStatePatch({ tokenProbabilities, probabilitiesStale: false });
     } catch (error) {
-      setStatePatch({ error: error instanceof Error ? error.message : String(error) });
+      setStatePatch({
+        error: error instanceof Error ? error.message : String(error),
+      });
     } finally {
       setStatePatch({ isInferring: false });
     }
@@ -287,14 +339,17 @@ export function App() {
         if (!sampled) break;
         currentTokenIds = [...currentTokenIds, sampled.tokenId];
 
-        const [decodedText, tokenTexts, nextTokens, tokenProbabilities] = await Promise.all([
-          backend.decode(currentTokenIds),
-          Promise.all(currentTokenIds.map((tokenId) => backend.decodeToken(tokenId))),
-          backend.getTopNextTokens(currentTokenIds, DEFAULT_TOP_N),
-          state.showProbabilities
-            ? backend.getPromptTokenProbabilities(currentTokenIds)
-            : Promise.resolve(state.tokenProbabilities),
-        ]);
+        const [decodedText, tokenTexts, nextTokens, tokenProbabilities] =
+          await Promise.all([
+            backend.decode(currentTokenIds),
+            Promise.all(
+              currentTokenIds.map((tokenId) => backend.decodeToken(tokenId)),
+            ),
+            backend.getTopNextTokens(currentTokenIds, DEFAULT_TOP_N),
+            state.showProbabilities
+              ? backend.getPromptTokenProbabilities(currentTokenIds)
+              : Promise.resolve(state.tokenProbabilities),
+          ]);
 
         if (continueRunId.current !== runId) break;
 
@@ -312,10 +367,16 @@ export function App() {
         await waitForPaint();
       }
     } catch (error) {
-      setStatePatch({ error: error instanceof Error ? error.message : String(error) });
+      setStatePatch({
+        error: error instanceof Error ? error.message : String(error),
+      });
     } finally {
       if (continueRunId.current === runId) {
-        setStatePatch({ isContinuing: false, isInferring: false, selectedTokenId: null });
+        setStatePatch({
+          isContinuing: false,
+          isInferring: false,
+          selectedTokenId: null,
+        });
       }
     }
   }, [
@@ -330,12 +391,17 @@ export function App() {
 
   const cancelContinue = useCallback(() => {
     continueRunId.current += 1;
-    setStatePatch({ isContinuing: false, isInferring: false, selectedTokenId: null });
+    setStatePatch({
+      isContinuing: false,
+      isInferring: false,
+      selectedTokenId: null,
+    });
   }, [setStatePatch]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey) return;
+      if (event.metaKey || event.ctrlKey || event.altKey || event.shiftKey)
+        return;
 
       if (state.isContinuing && (event.key === " " || event.key === "Escape")) {
         event.preventDefault();
@@ -391,20 +457,36 @@ export function App() {
   }, [loadModel]);
 
   return (
-    <main className="app-shell" aria-busy={state.isInferring || state.isContinuing}>
+    <main
+      className="app-shell"
+      aria-busy={state.isInferring || state.isContinuing}
+    >
       <header className="app-header">
         <div>
           <h1 className="title-logo-heading">
-            <img className="title-logo" src={aiExplorerTitleUrl} alt="AI Explorer" />
+            <img
+              className="title-logo"
+              src={aiExplorerTitleUrl}
+              alt="AI Explorer"
+            />
           </h1>
         </div>
-        <div className="model-pill">
-          <Sparkles aria-hidden="true" size={18} />
-          {MODEL_ID}
-        </div>
+        <a
+          className="github-link"
+          href={PROJECT_GITHUB_URL}
+          target="_blank"
+          rel="noreferrer"
+          aria-label="Open ai-explorer on GitHub"
+          title="Open ai-explorer on GitHub"
+        >
+          <InvertocatLogo />
+        </a>
       </header>
 
-      <section className="workbench" aria-disabled={state.loadStatus !== "ready"}>
+      <section
+        className="workbench"
+        aria-disabled={state.loadStatus !== "ready"}
+      >
         <div className="main-column">
           <PromptEditor
             ref={promptTextareaRef}
@@ -450,12 +532,35 @@ export function App() {
             onDelete={deleteOne}
             onDeleteAll={deleteAll}
             onContinue={state.isContinuing ? cancelContinue : startContinue}
-            onToggleTokenIds={() => setStatePatch({ showTokenIds: !state.showTokenIds })}
+            onToggleTokenIds={() =>
+              setStatePatch({ showTokenIds: !state.showTokenIds })
+            }
             onToggleProbabilities={toggleProbabilities}
           />
           <ProbabilityLegend visible={state.showProbabilities} />
         </aside>
       </section>
+
+      <footer className="app-footer">
+        <span>
+          Model:{" "}
+          <a href={MODEL_HF_URL} target="_blank" rel="noreferrer">
+            {MODEL_ID}
+          </a>
+        </span>
+        <span>
+          Code at{" "}
+          <a href={PROJECT_GITHUB_URL} target="_blank" rel="noreferrer">
+            simonchatts/ai-explorer
+          </a>
+        </span>
+        <span>
+          Originally based on{" "}
+          <a href={TOKEN_EXPLORER_URL} target="_blank" rel="noreferrer">
+            willkurt/token-explorer
+          </a>
+        </span>
+      </footer>
 
       <ModelLoadGate
         status={state.loadStatus}
@@ -467,7 +572,8 @@ export function App() {
         onCancel={() =>
           setStatePatch({
             loadStatus: "needs-consent",
-            loadMessage: "Model download cancelled. The workbench will stay disabled until you continue.",
+            loadMessage:
+              "Model download cancelled. The workbench will stay disabled until you continue.",
           })
         }
         onRetry={retry}
