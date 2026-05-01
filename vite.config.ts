@@ -5,6 +5,7 @@ export default defineConfig({
   base: "./",
   plugins: [react()],
   worker: {
-    format: "es",
+    // Firefox can parse nested runtime workers as classic scripts; avoid import.meta in the worker bundle.
+    format: "iife",
   },
 });
