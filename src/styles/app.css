@@ -187,8 +187,6 @@ h2 {
 
 .candidate-table {
   display: grid;
-  max-height: 548px;
-  overflow: auto;
 }
 
 .candidate-row {

@@ -42,9 +42,26 @@ function toNumberArray(value: unknown): number[] {
   return [];
 }
 
-function createInputTensor(tokenIds: number[]): Tensor {
-  const data = BigInt64Array.from(tokenIds, (id) => BigInt(id));
-  return new Tensor("int64", data, [1, tokenIds.length]);
+function createInt64Tensor(values: ArrayLike<number>, dims: number[]): Tensor {
+  const data = BigInt64Array.from(values, (value) => BigInt(value));
+  return new Tensor("int64", data, dims);
+}
+
+function createModelInputs(tokenIds: number[]): {
+  input_ids: Tensor;
+  attention_mask: Tensor;
+  position_ids: Tensor;
+} {
+  const sequenceLength = tokenIds.length;
+  const dims = [1, sequenceLength];
+  const positions = Array.from({ length: sequenceLength }, (_, index) => index);
+  const attentionMask = Array.from({ length: sequenceLength }, () => 1);
+
+  return {
+    input_ids: createInt64Tensor(tokenIds, dims),
+    attention_mask: createInt64Tensor(attentionMask, dims),
+    position_ids: createInt64Tensor(positions, dims),
+  };
 }
 
 function getLogitShape(logits: Tensor): [number, number, number] {
@@ -112,7 +129,7 @@ function decodeTokenSync(tokenId: number): string {
 async function runModel(tokenIds: number[]): Promise<Tensor> {
   if (!model) throw new Error("Model has not loaded.");
   if (tokenIds.length === 0) throw new Error("Cannot run inference with an empty token list.");
-  const outputs = await model({ input_ids: createInputTensor(tokenIds) });
+  const outputs = await model(createModelInputs(tokenIds));
   return outputs.logits as Tensor;
 }
 

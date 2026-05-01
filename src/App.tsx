@@ -133,6 +133,8 @@ export function App() {
   }, [initializePrompt, setStatePatch]);
 
   useEffect(() => {
+    if (state.loadStatus !== "idle") return;
+
     if (webGpuStatus === "unavailable") {
       setStatePatch({
         loadStatus: "error",
@@ -149,7 +151,14 @@ export function App() {
         loadMessage: deviceDecision.reason,
       });
     }
-  }, [deviceDecision.reason, deviceDecision.shouldAutoLoad, loadModel, setStatePatch, webGpuStatus]);
+  }, [
+    deviceDecision.reason,
+    deviceDecision.shouldAutoLoad,
+    loadModel,
+    setStatePatch,
+    state.loadStatus,
+    webGpuStatus,
+  ]);
 
   useEffect(() => {
     if (state.loadStatus !== "ready" || !derived.canEditPrompt) return;
