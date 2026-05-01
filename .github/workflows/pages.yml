@@ -31,19 +31,8 @@ jobs:
         run: npm ci
 
       - name: Build
-        env:
-          PAGES_BASE_PATH: ${{ vars.PAGES_BASE_PATH }}
         run: |
-          repo_name="${GITHUB_REPOSITORY#*/}"
-          if [ -n "$PAGES_BASE_PATH" ]; then
-            base="$PAGES_BASE_PATH"
-          elif [[ "$repo_name" == *.github.io ]]; then
-            base="/"
-          else
-            base="/$repo_name/"
-          fi
-
-          npm run build -- --base="$base"
+          npm run build
           touch dist/.nojekyll
 
       - name: Configure Pages
