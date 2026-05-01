@@ -1,0 +1,6 @@
+/// <reference types="vite/client" />
+
+interface Navigator {
+  gpu?: unknown;
+  deviceMemory?: number;
+}
