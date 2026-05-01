@@ -1,73 +1,24 @@
 # AI Explorer
 
-AI Explorer is a browser-based next-token workbench for exploring how a local language model continues text. It runs inference fully in the browser with WebGPU.
+AI Explorer is web app for visualising how an AI language model chooses the next token. Try it at [explorer.chatts.net](https://explorer.chatts.net) - Chrome is the most likely browser to work right now, because it uses WebGPU to run the model directly in the browser.
 
-The app uses the browser-ready ONNX version of `Qwen/Qwen2.5-0.5B` (`onnx-community/Qwen2.5-0.5B`).
+This project is inspired by [willkurt/token-explorer](https://github.com/willkurt/token-explorer). 
 
-## What You Can Do
+![Screenshot of AI Explorer](screenshot.png)
 
-- Edit a base prompt.
-- Inspect the current prompt and generated completion.
-- View the top next-token candidates and probabilities.
-- Click an exact token to append it.
-- Use **Next** to sample one token from the visible candidate list.
-- Use **Continue** to repeatedly sample until cancelled or EOS.
-- Delete generated tokens back to the original base prompt.
-- Toggle token IDs instead of token text.
-- Toggle probability-colored token chips for the full prompt.
+## Keyboard Shortcuts
 
-## Requirements
+- `ArrowRight` or `Enter`: sample the next token from the visible candidates.
+- `ArrowLeft` or `Backspace`: delete one generated token.
+- `Space`: continue sampling tokens.
+- `Space` or `Escape`: stop continuing while generation is running.
 
-- A desktop browser with WebGPU support, such as current Chrome or Edge.
-- Enough disk and memory for a local model download.
-- Node.js and npm for local development.
+Shortcuts are ignored while you are typing in the prompt or using a control.
 
-The first browser load downloads model files through Transformers.js. Later visits should be faster when browser caching is available.
+## Development
 
-## Getting Started
+After cloning the repo, first run `npm install`, and then run locally using
 
-Install dependencies:
+    npm run build && (cd dist; python -m http.server)
 
-```sh
-npm install
-```
-
-Start the local dev server:
-
-```sh
-npm run dev
-```
-
-Then open the URL printed by Vite, usually:
-
-```text
-http://localhost:5173/
-```
-
-Build the production bundle:
-
-```sh
-npm run build
-```
-
-Run unit tests:
-
-```sh
-npm run test
-```
-
-## Loading Behavior
-
-On desktop-like browsers, the app starts loading the model immediately and shows progress.
-
-On mobile, tablet, narrow, or low-memory-looking devices, the app asks before starting the model download. This is only a user experience heuristic, not a capability guarantee.
-
-If WebGPU is unavailable or model loading fails, the app shows a recoverable error with a retry action. There is no CPU fallback in this version.
-
-## Usage Notes
-
-The base prompt is editable only while no generated completion tokens exist. Once you append or sample a token, the prompt locks. Use **Delete** or **Delete All** to remove generated tokens back to the base prompt and unlock editing.
-
-**Next** and **Continue** intentionally sample only from the visible top candidate list, matching the Python GUI behavior. They do not sample from the model's full vocabulary distribution.
-
-Probability coloring is informational only; each chip also shows a numeric percentage so color is not the only signal.
+and viewing at [localhost:8000](http://localhost:8000).
