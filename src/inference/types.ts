@@ -19,11 +19,17 @@ export interface LoadProgress {
   message: string;
 }
 
+export interface TokenPredictions {
+  nextTokens: TokenCandidate[];
+  tokenProbabilities: number[] | null;
+}
+
 export interface InferenceBackend {
   load(): Promise<void>;
   encode(text: string): Promise<number[]>;
   decode(tokenIds: number[]): Promise<string>;
   decodeToken(tokenId: number): Promise<string>;
+  getTokenPredictions(tokenIds: number[], n: number, includeProbabilities: boolean): Promise<TokenPredictions>;
   getTopNextTokens(tokenIds: number[], n: number): Promise<TokenCandidate[]>;
   getPromptTokenProbabilities(tokenIds: number[]): Promise<number[]>;
   getEosTokenId(): Promise<number | null>;

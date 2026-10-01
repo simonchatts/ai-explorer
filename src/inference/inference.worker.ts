@@ -1,6 +1,8 @@
 import { AutoModelForCausalLM, AutoTokenizer, Tensor } from "@huggingface/transformers";
 import { MODEL_ID } from "./types";
-import { probabilityForToken, topTokensFromLogits } from "./logits";
+import { topTokensFromLogits } from "./logits";
+import { InferenceCache } from "./inferenceCache";
+import type { ForwardInputs, ForwardOutputs } from "./inferenceCache";
 
 type Tokenizer = Awaited<ReturnType<typeof AutoTokenizer.from_pretrained>>;
 type Model = Awaited<ReturnType<typeof AutoModelForCausalLM.from_pretrained>>;
@@ -10,7 +12,7 @@ type WorkerRequest =
   | { id: number; type: "encode"; text: string }
   | { id: number; type: "decode"; tokenIds: number[] }
   | { id: number; type: "decodeToken"; tokenId: number }
-  | { id: number; type: "getTopNextTokens"; tokenIds: number[]; n: number }
+  | { id: number; type: "getTokenPredictions"; tokenIds: number[]; n: number; includeProbabilities: boolean }
   | { id: number; type: "getPromptTokenProbabilities"; tokenIds: number[] }
   | { id: number; type: "getEosTokenId" };
 
@@ -47,40 +49,25 @@ function createInt64Tensor(values: ArrayLike<number>, dims: number[]): Tensor {
   return new Tensor("int64", data, dims);
 }
 
-function createModelInputs(tokenIds: number[]): {
-  input_ids: Tensor;
-  attention_mask: Tensor;
-  position_ids: Tensor;
-} {
-  const sequenceLength = tokenIds.length;
-  const dims = [1, sequenceLength];
-  const positions = Array.from({ length: sequenceLength }, (_, index) => index);
-  const attentionMask = Array.from({ length: sequenceLength }, () => 1);
-
+function createModelInputs({ tokenIds, positionOffset, attentionLength, pastKeyValues }: ForwardInputs<Tensor>) {
+  const positions = tokenIds.map((_, index) => positionOffset + index);
   return {
-    input_ids: createInt64Tensor(tokenIds, dims),
-    attention_mask: createInt64Tensor(attentionMask, dims),
-    position_ids: createInt64Tensor(positions, dims),
+    input_ids: createInt64Tensor(tokenIds, [1, tokenIds.length]),
+    attention_mask: createInt64Tensor(Array.from({ length: attentionLength }, () => 1), [1, attentionLength]),
+    position_ids: createInt64Tensor(positions, [1, tokenIds.length]),
+    past_key_values: pastKeyValues,
   };
 }
 
-function getLogitShape(logits: Tensor): [number, number, number] {
-  const dims = logits.dims;
-  if (dims.length !== 3) {
-    throw new Error(`Expected 3D logits, received shape [${dims.join(", ")}].`);
-  }
-  return [dims[0], dims[1], dims[2]];
-}
-
-function getLogitRow(logits: Tensor, position: number): Float32Array {
-  const [, sequenceLength, vocabSize] = getLogitShape(logits);
-  if (position < 0 || position >= sequenceLength) {
-    throw new Error(`Logit position ${position} is outside sequence length ${sequenceLength}.`);
-  }
-  const start = position * vocabSize;
-  const data = logits.data as Float32Array;
-  return data.subarray(start, start + vocabSize);
-}
+const inferenceCache = new InferenceCache<Tensor>(async (inputs) => {
+  if (!model) throw new Error("Model has not loaded.");
+  const outputs = await model(createModelInputs(inputs));
+  return {
+    logits: outputs.logits as ForwardOutputs<Tensor>["logits"],
+    // Let the cache own disposal of old KV tensors once the forward pass finishes.
+    pastKeyValues: model.getPastKeyValues(outputs, null) as Record<string, Tensor>,
+  };
+});
 
 async function ensureLoaded(): Promise<void> {
   if (tokenizer && model) return;
@@ -126,13 +113,6 @@ function decodeTokenSync(tokenId: number): string {
   return tokenizer.decode([tokenId], { skip_special_tokens: false });
 }
 
-async function runModel(tokenIds: number[]): Promise<Tensor> {
-  if (!model) throw new Error("Model has not loaded.");
-  if (tokenIds.length === 0) throw new Error("Cannot run inference with an empty token list.");
-  const outputs = await model(createModelInputs(tokenIds));
-  return outputs.logits as Tensor;
-}
-
 self.addEventListener("message", async (event: MessageEvent<WorkerRequest>) => {
   const message = event.data;
 
@@ -162,29 +142,18 @@ self.addEventListener("message", async (event: MessageEvent<WorkerRequest>) => {
       return;
     }
 
-    if (message.type === "getTopNextTokens") {
-      const logits = await runModel(message.tokenIds);
-      const row = getLogitRow(logits, message.tokenIds.length - 1);
-      postResult(message.id, topTokensFromLogits(row, message.n, decodeTokenSync));
+    if (message.type === "getTokenPredictions") {
+      const prediction = await inferenceCache.infer(message.tokenIds, message.includeProbabilities);
+      postResult(message.id, {
+        nextTokens: prediction ? topTokensFromLogits(prediction.nextLogits, message.n, decodeTokenSync) : [],
+        tokenProbabilities: message.includeProbabilities ? prediction?.tokenProbabilities ?? [] : null,
+      });
       return;
     }
 
     if (message.type === "getPromptTokenProbabilities") {
-      if (message.tokenIds.length === 0) {
-        postResult(message.id, []);
-        return;
-      }
-      if (message.tokenIds.length === 1) {
-        postResult(message.id, [0.5]);
-        return;
-      }
-
-      const logits = await runModel(message.tokenIds);
-      const probabilities = message.tokenIds.map((tokenId, index) => {
-        if (index === 0) return 0.5;
-        return probabilityForToken(getLogitRow(logits, index - 1), tokenId);
-      });
-      postResult(message.id, probabilities);
+      const prediction = await inferenceCache.infer(message.tokenIds, true);
+      postResult(message.id, prediction?.tokenProbabilities ?? []);
       return;
     }
 

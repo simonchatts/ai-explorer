@@ -89,24 +89,19 @@ export function App() {
       const backend = backendRef.current;
       if (!backend) throw new Error("Inference backend is not ready.");
 
-      const [decodedText, tokenTexts, nextTokens, tokenProbabilities] =
+      const [decodedText, tokenTexts, predictions] =
         await Promise.all([
           backend.decode(tokenIds),
           Promise.all(tokenIds.map((tokenId) => backend.decodeToken(tokenId))),
-          tokenIds.length > 0
-            ? backend.getTopNextTokens(tokenIds, DEFAULT_TOP_N)
-            : Promise.resolve([]),
-          state.showProbabilities
-            ? backend.getPromptTokenProbabilities(tokenIds)
-            : Promise.resolve(state.tokenProbabilities),
+          backend.getTokenPredictions(tokenIds, DEFAULT_TOP_N, state.showProbabilities),
         ]);
 
       setStatePatch({
         decodedText,
         tokenIds,
         tokenTexts,
-        nextTokens,
-        tokenProbabilities,
+        nextTokens: predictions.nextTokens,
+        tokenProbabilities: predictions.tokenProbabilities ?? state.tokenProbabilities,
         probabilitiesStale: !state.showProbabilities,
         selectedTokenId: null,
         ...(options.baseTokenIds ? { baseTokenIds: options.baseTokenIds } : {}),
@@ -401,27 +396,24 @@ export function App() {
         if (!sampled) break;
         currentTokenIds = [...currentTokenIds, sampled.tokenId];
 
-        const [decodedText, tokenTexts, nextTokens, tokenProbabilities] =
+        const [decodedText, tokenTexts, predictions] =
           await Promise.all([
             backend.decode(currentTokenIds),
             Promise.all(
               currentTokenIds.map((tokenId) => backend.decodeToken(tokenId)),
             ),
-            backend.getTopNextTokens(currentTokenIds, DEFAULT_TOP_N),
-            state.showProbabilities
-              ? backend.getPromptTokenProbabilities(currentTokenIds)
-              : Promise.resolve(state.tokenProbabilities),
+            backend.getTokenPredictions(currentTokenIds, DEFAULT_TOP_N, state.showProbabilities),
           ]);
 
         if (continueRunId.current !== runId) break;
 
-        currentCandidates = nextTokens;
+        currentCandidates = predictions.nextTokens;
         setStatePatch({
           decodedText,
           tokenIds: currentTokenIds,
           tokenTexts,
-          nextTokens,
-          tokenProbabilities,
+          nextTokens: predictions.nextTokens,
+          tokenProbabilities: predictions.tokenProbabilities ?? state.tokenProbabilities,
           probabilitiesStale: !state.showProbabilities,
           selectedTokenId: sampled.tokenId,
         });

@@ -1,11 +1,11 @@
-import type { InferenceBackend, LoadProgress, TokenCandidate } from "./types";
+import type { InferenceBackend, LoadProgress, TokenCandidate, TokenPredictions } from "./types";
 
 type WorkerRequest =
   | { id: number; type: "load" }
   | { id: number; type: "encode"; text: string }
   | { id: number; type: "decode"; tokenIds: number[] }
   | { id: number; type: "decodeToken"; tokenId: number }
-  | { id: number; type: "getTopNextTokens"; tokenIds: number[]; n: number }
+  | { id: number; type: "getTokenPredictions"; tokenIds: number[]; n: number; includeProbabilities: boolean }
   | { id: number; type: "getPromptTokenProbabilities"; tokenIds: number[] }
   | { id: number; type: "getEosTokenId" };
 
@@ -59,8 +59,12 @@ export class WorkerInferenceBackend implements InferenceBackend {
     return this.request<string>({ id: 0, type: "decodeToken", tokenId });
   }
 
-  getTopNextTokens(tokenIds: number[], n: number): Promise<TokenCandidate[]> {
-    return this.request<TokenCandidate[]>({ id: 0, type: "getTopNextTokens", tokenIds, n });
+  getTokenPredictions(tokenIds: number[], n: number, includeProbabilities: boolean): Promise<TokenPredictions> {
+    return this.request<TokenPredictions>({ id: 0, type: "getTokenPredictions", tokenIds, n, includeProbabilities });
+  }
+
+  async getTopNextTokens(tokenIds: number[], n: number): Promise<TokenCandidate[]> {
+    return (await this.getTokenPredictions(tokenIds, n, false)).nextTokens;
   }
 
   getPromptTokenProbabilities(tokenIds: number[]): Promise<number[]> {
